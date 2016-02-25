@@ -91,11 +91,11 @@ cout<<"now front="<<item.front()<<"\n";
 for(int j=2;j<=20;j+=2)
 item.push(j);
 int l=item.size();
-//while(!item.empty())
-//{
-//cout<<item.front()<<"\n";
-//item.pop();
-//}
+while(!item.empty())
+{
+cout<<item.front()<<"\n";
+item.pop();
+}
 cout<<l;
 }
 
