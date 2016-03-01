@@ -19,6 +19,7 @@ pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nocustomer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_for_haircut = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_chair = PTHREAD_COND_INITIALIZER;
+
 pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
         
 
@@ -36,6 +37,8 @@ class Shop {
 	void leaveShop(int customerId,int barberId);
 	void helloCustomer(int id);
 	void byeCustomer(int id);
+
+
 };
 
 
@@ -86,9 +89,9 @@ int Shop::visitShop(int id)
         }
         is_Bfree=0;
         
-        cout<<cid<<" moves to chair["<<bid<<"]"<<"\n";
+        cout<<id<<" moves to chair["<<bid<<"]"<<"\n";
         sem_post(&busy_barber);
-        
+       
 	pthread_mutex_unlock(&lock2);
         return bid;	
 }
@@ -103,7 +106,7 @@ void Shop::leaveShop(int customerID,int barberID)
 	while(!is_Bfree)
 	pthread_cond_wait(&wait_for_haircut,&lock1);
 	sem_wait(&busy_barber);
-	cout<<cid<<" says Good-bye to the barber"<<"\n"; 
+	cout<<customerID<<" says Good-bye to the barber"<<"\n"; 
 	sem_post(&busy_barber);
 	pthread_mutex_unlock(&lock1);
 	
@@ -199,9 +202,9 @@ int main(int argc,char** argv)
 	{
 		  Parameters.Cid=i;
 	        
-	  usleep(rand()%1000);
+	 
 	  pthread_create(&tCustomer[i],NULL,&customer,&Parameters);
-	
+	   usleep(rand()%1000);
 	}
 	usleep(100000);
        	return 0;       
