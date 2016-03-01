@@ -19,7 +19,6 @@ pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nocustomer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_for_haircut = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_chair = PTHREAD_COND_INITIALIZER;
-
 pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
         
 
@@ -37,25 +36,9 @@ class Shop {
 	void leaveShop(int customerId,int barberId);
 	void helloCustomer(int id);
 	void byeCustomer(int id);
-
-
-/*	private:
-	string int2string(int i);
-	void print(int person,string message);*/
 };
 
-/*string Shop::int2string(int i)
-{
- 	stringstream out;
-	out<<i;
-	return out.str();
-}
 
-
-void Shop::print(int person,string message)
-{
-	out<<((person>0?"customer["::"barber[")<<abs(person)<<"]:"<<message<<endl;
-}*/
 
 Shop::Shop(int nBarbers ,int nChairs)
 {
