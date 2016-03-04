@@ -10,9 +10,13 @@ using namespace std;
 #define DEFAULT_CHAIRS 3
 #define DEFAULT_BARBERS 1
 
-int tnc,tnb,nb,nc;
+int tnc,tnb,nb,nc,nDropsOff=0;
+int nBarbers,nChairs,nCustomers,serviceTime;
 sem_t busy_barber;
-int cid=1;
+sem_t var;
+sem_t isleep;
+sem_t bye;
+int cid=1,f=0;
 int bid=0;
 int is_Bfree=1;
 pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
@@ -26,7 +30,7 @@ pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
 
 class Shop {
 	public:
-	int nDropsOff;
+	
 	queue <int>waitq;
 	int stime;
 	
@@ -37,6 +41,7 @@ class Shop {
 	void leaveShop(int customerId,int barberId);
 	void helloCustomer(int id);
 	void byeCustomer(int id);
+
 
 
 };
@@ -62,15 +67,15 @@ int Shop::visitShop(int id)
 	pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
         
 	pthread_mutex_lock(&lock2);
-
-  	
+        if(f)
+  	sem_post(&isleep);
 	if(waitq.size()==tnc)
 	{
 	
 		cout<<id<<" Leaves The Shop Because Of No Available Of Waiting Chairs\n";
 		nDropsOff++;
-		
-		pthread_mutex_unlock(&lock1);
+		cout<<"Total No of DROPOFFs "<<nDropsOff<<"\n";
+		pthread_mutex_unlock(&lock2);
 		return -1;			
 	}
 	
@@ -90,8 +95,8 @@ int Shop::visitShop(int id)
         is_Bfree=0;
         
         cout<<id<<" moves to chair["<<bid<<"]"<<"\n";
-        sem_post(&busy_barber);
-       
+        sem_post(&var);
+        sem_wait(&busy_barber);
 	pthread_mutex_unlock(&lock2);
         return bid;	
 }
@@ -100,14 +105,15 @@ void Shop::leaveShop(int customerID,int barberID)
 {
         pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock(&lock1);
-	sem_wait(&busy_barber);
+	
 	cout<< cid << " waits for barber["<<barberID <<"] to be done with hair-cut."<<"\n";
-	sem_post(&busy_barber);
+	sem_wait(&busy_barber);
 	while(!is_Bfree)
 	pthread_cond_wait(&wait_for_haircut,&lock1);
-	sem_wait(&busy_barber);
+	
+	
 	cout<<customerID<<" says Good-bye to the barber"<<"\n"; 
-	sem_post(&busy_barber);
+	sem_post(&bye);
 	pthread_mutex_unlock(&lock1);
 	
 }
@@ -116,33 +122,38 @@ void Shop::helloCustomer(int id)
 {
         
         
-        pthread_mutex_lock(&lock1);
-         sem_wait(&busy_barber); 
-       if(is_Bfree==1 && waitq.empty())
-        {
-	     cout<<id<<" sleeps because of no customers"<<"\n";
-             pthread_cond_wait(&nocustomer,&lock1);
-        }  
-        
+       pthread_mutex_lock(&lock1);
+       sem_wait(&var); 
+      
        cout<<id<<" starts a haircut service for the customer["<<cid<<"]"<<"\n"; 
-       sem_post(&busy_barber);
+        sem_post(&busy_barber);
        pthread_mutex_unlock(&lock1);
 }
 
 void Shop::byeCustomer(int id)
 {
         pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
-        pthread_mutex_lock(&lock1);
-        sem_wait(&busy_barber);
-        cout<<id<<" says he's done with the hair-cut service for the customer["<<cid<<"]"<<"\n";
-        sem_post(&busy_barber);
        
-        pthread_cond_signal(&wait_for_haircut);             
+        pthread_mutex_lock(&lock1);
         
-        cout<<id<<" calls in another customer"<<"\n";
+        cout<<id<<" says he's done with the hair-cut service for the customer["<<cid<<"]"<<"\n";
+        sem_post(&busy_barber); 
+        pthread_cond_signal(&wait_for_haircut); 
+             
         is_Bfree=1;
+        sem_wait(&bye);
+          if(is_Bfree==1 && waitq.empty())
+        {    
+             f=1;
+	     cout<<id<<" sleeps because of no customers"<<"\n";
+	     sem_wait(&isleep);
+             
+        } 
+       
+        cout<<id<<" calls in another customer"<<"\n";
+         
         pthread_cond_signal(&wait_chair);
-        sem_wait(&busy_barber);
+        
         pthread_mutex_unlock(&lock1);
 }
 struct ThreadParam
@@ -184,8 +195,11 @@ struct ThreadParam
 }
 int main(int argc,char** argv)
 {
-	int nBarbers,nChairs,nCustomers,serviceTime;
+	
         sem_init(&busy_barber,0,0);
+        sem_init(&var,0,0);
+        sem_init(&isleep,0,0);
+        sem_init(&bye,0,0);
 	pthread_t tCustomer[100];
 	pthread_t tBarber;
 	struct ThreadParam Parameters;
