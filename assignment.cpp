@@ -19,12 +19,14 @@ sem_t bye;
 int cid=1,f=0;
 int bid=0;
 int is_Bfree=1;
-pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t lock1=PTHREAD_MUTEX_INITIALIZER;
+
 pthread_cond_t nocustomer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_for_haircut = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_chair = PTHREAD_COND_INITIALIZER;
 
-pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
+
         
 
 
@@ -63,10 +65,9 @@ Shop::Shop()
 
 int Shop::visitShop(int id)
 {
-	pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
-	pthread_mutex_t lock2  = PTHREAD_MUTEX_INITIALIZER;
+	
         
-	pthread_mutex_lock(&lock2);
+	
         if(f)
   	sem_post(&isleep);
 	if(waitq.size()==tnc)
@@ -90,6 +91,7 @@ int Shop::visitShop(int id)
 	        pthread_mutex_unlock(&lock1);
 	        
                 cid=waitq.front();
+                
                 waitq.pop();
         }
         is_Bfree=0;
@@ -97,24 +99,21 @@ int Shop::visitShop(int id)
         cout<<id<<" moves to chair["<<bid<<"]"<<"\n";
         sem_post(&var);
         sem_wait(&busy_barber);
-	pthread_mutex_unlock(&lock2);
+	
         return bid;	
 }
 
 void Shop::leaveShop(int customerID,int barberID)
 {
-        pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
-	pthread_mutex_lock(&lock1);
+      
 	
 	cout<< cid << " waits for barber["<<barberID <<"] to be done with hair-cut."<<"\n";
 	sem_wait(&busy_barber);
 	while(!is_Bfree)
 	pthread_cond_wait(&wait_for_haircut,&lock1);
-	
-	
 	cout<<customerID<<" says Good-bye to the barber"<<"\n"; 
 	sem_post(&bye);
-	pthread_mutex_unlock(&lock1);
+	
 	
 }
 
@@ -122,19 +121,18 @@ void Shop::helloCustomer(int id)
 {
         
         
-       pthread_mutex_lock(&lock1);
-       sem_wait(&var); 
       
+       sem_wait(&var); 
        cout<<id<<" starts a haircut service for the customer["<<cid<<"]"<<"\n"; 
-        sem_post(&busy_barber);
-       pthread_mutex_unlock(&lock1);
+       sem_post(&busy_barber);
+        
+       
+       
 }
 
 void Shop::byeCustomer(int id)
 {
-        pthread_mutex_t lock1  = PTHREAD_MUTEX_INITIALIZER;
        
-        pthread_mutex_lock(&lock1);
         
         cout<<id<<" says he's done with the hair-cut service for the customer["<<cid<<"]"<<"\n";
         sem_post(&busy_barber); 
@@ -149,12 +147,12 @@ void Shop::byeCustomer(int id)
 	     sem_wait(&isleep);
              
         } 
-       
+        pthread_cond_signal(&wait_chair);
         cout<<id<<" calls in another customer"<<"\n";
          
-        pthread_cond_signal(&wait_chair);
         
-        pthread_mutex_unlock(&lock1);
+        
+      
 }
 struct ThreadParam
 {
@@ -218,7 +216,7 @@ int main(int argc,char** argv)
 	        
 	 
 	  pthread_create(&tCustomer[i],NULL,&customer,&Parameters);
-	   usleep(rand()%1000);
+	  usleep(rand()%1000);
 	}
 	usleep(100000);
        	return 0;       
