@@ -21,7 +21,8 @@ int bid=0;
 int is_Bfree=1;
 
 pthread_mutex_t lock1=PTHREAD_MUTEX_INITIALIZER;
-
+pthread_mutex_t lock2=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock3=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nocustomer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_for_haircut = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_chair = PTHREAD_COND_INITIALIZER;
@@ -66,7 +67,7 @@ Shop::Shop()
 int Shop::visitShop(int id)
 {
 	
-        
+         pthread_mutex_unlock(&lock1);
 	
         if(f)
   	sem_post(&isleep);
@@ -75,8 +76,8 @@ int Shop::visitShop(int id)
 	
 		cout<<id<<" Leaves The Shop Because Of No Available Of Waiting Chairs\n";
 		nDropsOff++;
-		cout<<"Total No of DROPOFFs "<<nDropsOff<<"\n";
-		pthread_mutex_unlock(&lock2);
+		
+		pthread_mutex_unlock(&lock1);
 		return -1;			
 	}
 	
@@ -85,10 +86,10 @@ int Shop::visitShop(int id)
 	        waitq.push(id);
 		cout<<id<<" Is Waiting in The Chair. # Waiting Seats Available = "<<(tnc-waitq.size())<<"\n";
 		
-		pthread_mutex_lock(&lock1);
+		
                 while(!is_Bfree)
                 pthread_cond_wait(&wait_chair,&lock1);
-	        pthread_mutex_unlock(&lock1);
+	       
 	        
                 cid=waitq.front();
                 
@@ -99,20 +100,21 @@ int Shop::visitShop(int id)
         cout<<id<<" moves to chair["<<bid<<"]"<<"\n";
         sem_post(&var);
         sem_wait(&busy_barber);
-	
+	pthread_mutex_unlock(&lock1);
         return bid;	
 }
 
 void Shop::leaveShop(int customerID,int barberID)
 {
       
-	
+	pthread_mutex_lock(&lock2);
 	cout<< cid << " waits for barber["<<barberID <<"] to be done with hair-cut."<<"\n";
 	sem_wait(&busy_barber);
 	while(!is_Bfree)
 	pthread_cond_wait(&wait_for_haircut,&lock1);
 	cout<<customerID<<" says Good-bye to the barber"<<"\n"; 
 	sem_post(&bye);
+	pthread_mutex_unlock(&lock2);
 	
 	
 }
@@ -149,7 +151,7 @@ void Shop::byeCustomer(int id)
         } 
         pthread_cond_signal(&wait_chair);
         cout<<id<<" calls in another customer"<<"\n";
-         
+        
         
         
       
@@ -162,7 +164,7 @@ struct ThreadParam
 	int Cid;
 };
 
- void *barber( void *arg ) 
+ void *barber_thread( void *arg ) 
 {
 	 ThreadParam &param = *(ThreadParam *)arg;
  	 Shop &shop = param.shop;
@@ -179,7 +181,7 @@ struct ThreadParam
         }
  }
  
- void *customer( void *arg ) 
+ void *customer_thread( void *arg ) 
 {
 
 	 ThreadParam &param = *(ThreadParam *)arg;
@@ -187,13 +189,19 @@ struct ThreadParam
 	 int id = param.Cid;
 
  
+	
 	 int barber = -1;
 	 if ( ( barber = shop.visitShop( id ) ) != -1 ) 
 	 shop.leaveShop( id, bid );
+	 if(barber==-1)
+	 {
+	 cout<<"No place to sit\n";
+	 cout<<"Total No of DROPOFFs "<<nDropsOff<<"\n";
+	 }
 }
 int main(int argc,char** argv)
 {
-	
+	int j;
         sem_init(&busy_barber,0,0);
         sem_init(&var,0,0);
         sem_init(&isleep,0,0);
@@ -209,15 +217,18 @@ int main(int argc,char** argv)
 	Parameters.Cid=1;
 	Parameters.Bid=0;	
 	Shop s(nBarbers,nChairs);
-	pthread_create(&tBarber,NULL,&barber,&Parameters);
+	pthread_create(&tBarber,NULL,&barber_thread,&Parameters);
 	for(int i=1;i<=nCustomers;i++)
 	{
 		  Parameters.Cid=i;
 	        
 	 
-	  pthread_create(&tCustomer[i],NULL,&customer,&Parameters);
+	  pthread_create(&tCustomer[i],NULL,&customer_thread,&Parameters);
 	  usleep(rand()%1000);
 	}
-	usleep(100000);
+	
+	for(j=1;j<=nCustomers;j++)
+	pthread_join(tCustomer[j],NULL);
+	
        	return 0;       
 }
