@@ -67,7 +67,7 @@ Shop::Shop()
 int Shop::visitShop(int id)
 {
 	
-         pthread_mutex_unlock(&lock1);
+         pthread_mutex_lock(&lock1);
 	
         if(f)
   	sem_post(&isleep);
