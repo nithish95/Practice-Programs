@@ -28,10 +28,6 @@ pthread_cond_t nocustomer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_for_haircut = PTHREAD_COND_INITIALIZER;
 pthread_cond_t wait_chair = PTHREAD_COND_INITIALIZER;
 
-
-        
-
-
 class Shop {
 	
 	public:
